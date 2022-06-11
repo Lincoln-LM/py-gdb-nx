@@ -1,5 +1,6 @@
 """Wrapper around pygdbmi.GdbController for easier switch connection"""
 
+import struct
 from typing import Optional,List
 import os.path
 import pygdbmi.gdbcontroller
@@ -88,7 +89,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self,
         process_name: str = "Application",
     ):
-        """Attach to process of name process_name
+        """
+        Attach to process of name process_name
 
         Args:
             process_name (str, optional): Name of switch process to attach to.
@@ -120,11 +122,197 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
                 self.main_base, self.main_max = \
                     (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[2:4])
 
+    def read_instruction(
+        self,
+        address: int,
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ) -> str:
+        """
+        Read instruction from address
+
+        Args:
+            address (int): Address to read from
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+
+        Returns:
+            str: Instruction information
+        """
+        if offset_main:
+            address += self.main_base
+        elif offset_heap:
+            address += self.heap_base
+        self.write(f"x/1iw {address}", read_response = False)
+        return self.filter_response(
+            self.get_gdb_response(),
+            "console"
+            )[0]['payload'].split(":")[1].replace("\\t","\t").replace("\\n","")
+
+    def read_int(
+        self,
+        address: int,
+        size: str = "g",
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ) -> int:
+        """
+        Read memory at address
+
+        Args:
+            address (int): Address to read from
+            size (str, optional): GDB size of int to read. Defaults to "g"
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+
+        Returns:
+            int: Integer read from address
+        """
+        if offset_main:
+            address += self.main_base
+        elif offset_heap:
+            address += self.heap_base
+        self.write(f"x/1x{size} {address}", read_response = False)
+        return int(self.filter_response(
+            self.get_gdb_response(),
+            "console"
+            )[0]['payload'].split("0x")[-1][:-2].replace(":",""),16)
+
+    def read_bytes(
+        self,
+        address: int,
+        size: str = "g",
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ) -> bytes:
+        """
+        Read memory at address and convert it to bytes
+
+        Args:
+            address (int): Address to read from
+            size (str, optional): GDB size of int to read. Defaults to "g"
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+
+        Returns:
+            bytes: Bytes read from address
+        """
+        if size == "b":
+            struct_size = "B"
+        elif size == "h":
+            struct_size = "H"
+        elif size == "w":
+            struct_size = "I"
+        elif size == "g":
+            struct_size = "Q"
+        return struct.pack(struct_size, self.read_int(address, size, offset_main, offset_heap))
+
+    def read_float(
+        self,
+        address: int,
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ) -> float:
+        """
+        Read float at address
+
+        Args:
+            address (int): Address to read from
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+        """
+        return struct.unpack("f", self.read_bytes(address, "w", offset_main, offset_heap))
+
+    def write_int(
+        self,
+        address: int,
+        value: int,
+        size: str = "g",
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ):
+        """
+        Write integer of size to address
+
+        Args:
+            address (int): Address to write to
+            value (int): Value to write to memory
+            size (str, optional): GDB size of int to write. Defaults to "g"
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+        """
+        if size == "b":
+            size = "unsigned char"
+        elif size == "h":
+            size = "unsigned short"
+        elif size == "w":
+            size = "unsigned word"
+        elif size == "g":
+            size = "unsigned long"
+        if offset_main:
+            address += self.main_base
+        elif offset_heap:
+            address += self.heap_base
+        self.write(f"set {{{size}}}{address} = {value}")
+
+    def write_bytes(
+        self,
+        address: int,
+        value: bytes,
+        size: str = "g",
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ):
+        """
+        Write bytes of size to address
+
+        Args:
+            address (int): Address to write to
+            value (bytes): Value to write to memory
+            size (str, optional): GDB size of bytes to write. Defaults to "g"
+            offset_main (bool, optional): Whether or not to offset address by
+            self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address by
+            self.heap_base. Defaults to False
+        """
+        self.write_int(address, struct.unpack("I", value), size, offset_main, offset_heap)
+
+    def write_float(
+        self,
+        address: int,
+        value: float,
+        offset_main: Optional[bool] = False,
+        offset_heap: Optional[bool] = False,
+    ):
+        """
+        Write float to address
+
+        Args:
+            address (int): Address to write to
+            value (float): Value to write to memory
+            offset_main (bool, optional): Whether or not to offset address
+            by self.main_base. Defaults to False
+            offset_heap (bool, optional): Whether or not to offset address
+            by self.heap_base. Defaults to False
+        """
+        self.write_bytes(address, struct.pack("f", value), "w", offset_main, offset_heap)
+
     def add_breakpoint(
         self,
         bkpt: Breakpoint,
     ):
-        """Activate breakpoint
+        """
+        Activate breakpoint
 
         Args:
             bkpt (Breakpoint): Breakpoint object to activate
@@ -178,7 +366,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self,
         target_type: Optional[str] = "console",
     ) -> List[dict]:
-        """Wait until response from gdb of type target_type
+        """
+        Wait until response from gdb of type target_type
 
         Args:
             target_type (Optional[str], optional): mi3 type to wait for. Defaults to "console".
@@ -200,7 +389,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         response: List[dict],
         detailed: Optional[bool] = False,
     ):
-        """Log a mi3 response List[dict]
+        """
+        Log a mi3 response List[dict]
 
         Args:
             response (List[dict]): mi3 response to log
@@ -233,7 +423,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
     def extract_payloads(
         response: List[dict],
     ) -> List[str]:
-        """Extract only the payloads of a mi3 response
+        """
+        Extract only the payloads of a mi3 response
 
         Args:
             response (List[dict]): mi3 response to extract from
