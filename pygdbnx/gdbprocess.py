@@ -38,9 +38,16 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self.ip_address = ip_address
         self.active_breakpoints = {}
         self.main_base: int = None
+        self.main_max: int = None
         self.heap_base: int = None
+        self.heap_max: int = None
+        self.stack_base: int = None
+        self.stack_max: int = None
         self.clear_responses()
         self.connect()
+        self.attach()
+        self.get_bases()
+        self.write("set step-mode on")
 
     def clear_responses(
         self,
@@ -58,6 +65,42 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         """
         self.write(f"target extended-remote {self.ip_address}:22225", read_response=False)
         self.log_response(self.wait_for_response())
+
+    def attach(
+        self,
+        process_name: str = "Application",
+    ):
+        """Attach to process of name process_name
+
+        Args:
+            process_name (str, optional): Name of switch process to attach to.
+            Defaults to "Application".
+        """
+        self.write("info os processes", read_response = False)
+        processes = self.wait_for_response()
+        for line in reversed(processes): # sort by latest process started
+            if line['type'] == "console" and process_name in line["payload"]:
+                process_id = int(line["payload"].split(" ",1)[0])
+                self.log_response(self.write(f"attach {process_id}"))
+                break
+
+    def get_bases(
+        self,
+    ):
+        """
+        Read the base addresses of sections of the switch's memory
+        """
+        self.write("monitor get base", read_response = False)
+        for line in self.filter_response(self.wait_for_response("target"), "target"):
+            if "Heap" in line['payload']:
+                self.heap_base, self.heap_max = \
+                    (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[4:6])
+            elif "Stack" in line['payload']:
+                self.stack_base, self.stack_max = \
+                    (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[3:5])
+            elif ".nss" in line['payload']:
+                self.main_base, self.main_max = \
+                    (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[2:4])   
 
     def wait_for_response(
         self,
@@ -94,7 +137,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         if detailed:
             print(response)
         else:
-            for line in self.extract_payloads(response):
+            for line in self.extract_payloads(self.filter_response(response)):
                 print(line)
 
     @staticmethod
