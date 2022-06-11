@@ -4,7 +4,7 @@ from typing import Optional,List
 import pygdbmi.gdbcontroller
 import pygdbmi.constants
 
-from .breakpoint import Breakpoint
+from .breakpoint import Breakpoint, WatchPoint
 
 
 class GdbProcess(pygdbmi.gdbcontroller.GdbController):
@@ -36,18 +36,22 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         """
         super().__init__([path_to_gdb,"--interpreter=mi3"], time_to_check_for_additional_output_sec)
         self.ip_address = ip_address
-        self.active_breakpoints = {}
+        self.active_breakpoints = []
         self.main_base: int = None
         self.main_max: int = None
         self.heap_base: int = None
         self.heap_max: int = None
         self.stack_base: int = None
         self.stack_max: int = None
+        self.bkpt_no = 1
         self.clear_responses()
         self.connect()
         self.attach()
         self.get_bases()
         self.write("set step-mode on")
+        if breakpoints is not None:
+            for item in breakpoints:
+                self.add_breakpoint(item)
 
     def clear_responses(
         self,
@@ -56,6 +60,14 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         Clear all cached gdb responses by sending an empty string
         """
         self.write("")
+
+    def resume_execution(
+        self,
+    ):
+        """
+        Resume program execution by sending the continue command
+        """
+        self.write("continue")
 
     def connect(
         self,
@@ -100,7 +112,61 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
                     (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[3:5])
             elif ".nss" in line['payload']:
                 self.main_base, self.main_max = \
-                    (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[2:4])   
+                    (int(num, 16) for num in line['payload'].replace(" -","")[:-2].split(" ")[2:4])
+
+    def add_breakpoint(
+        self,
+        bkpt: Breakpoint,
+    ):
+        """Activate breakpoint
+
+        Args:
+            bkpt (Breakpoint): Breakpoint object to activate
+        """
+        bkpt.bkpt_no = self.bkpt_no
+        self.active_breakpoints.append(bkpt)
+        if isinstance(bkpt, WatchPoint):
+            self.write(f"{bkpt.watch_type} * 0x{bkpt.address:X}")
+        else:
+            self.write(f"b * 0x{self.main_base + (bkpt.address & 0xFFFFFFFF):X}")
+        if not bkpt.active:
+            self.write(f"disable {bkpt.bkpt_no}")
+        self.bkpt_no += 1
+
+    def wait_for_break(
+        self,
+        timeout: float = 60.0,
+    ):
+        """
+        Wait for and deal with a breakpoint being hit
+
+        Args:
+            timeout (float, optional): Time in seconds to wait before timing out. Defaults to 60.0
+        """
+        response = self.get_gdb_response(timeout_sec = timeout, raise_error_on_timeout = False)
+        if response is not None:
+            bkpt_hit: Breakpoint = None
+            for line in response:
+                if line['message'] == "breakpoint-modified":
+                    bkpt_info = line['payload']['bkpt']
+                    bkpt_no = int(bkpt_info['number'])
+                    bkpt_hit = self.active_breakpoints[bkpt_no - 1]
+                    break
+            if bkpt_hit is not None:
+                print(f"Breakpoint at \"{bkpt_hit.name}\" hit")
+                if isinstance(bkpt_hit, WatchPoint):
+                    access_address: int = None
+                    for line in reversed(response):
+                        if "frame" in line['payload']:
+                            access_address = int(line['payload']['frame']['addr'],16)
+                            break
+                    access_address = 0x7100000000 | (access_address - self.main_base)
+                    print(f"Access address: {access_address:X}")
+                self.clear_responses()
+                if bkpt_hit.on_break is not None:
+                    bkpt_hit.on_break(self, bkpt_hit)
+                self.resume_execution()
+                self.wait_for_break()
 
     def wait_for_response(
         self,
