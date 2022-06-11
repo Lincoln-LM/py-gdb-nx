@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vscode settings
+.vscode/
+
+# test scripts
+test_*.py
+
+# gdb
+aarch64-none-elf-gdb.exe
