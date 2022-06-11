@@ -1,10 +1,12 @@
 """Wrapper around pygdbmi.GdbController for easier switch connection"""
 
 from typing import Optional,List
+import os.path
 import pygdbmi.gdbcontroller
 import pygdbmi.constants
 
 from .breakpoint import Breakpoint, WatchPoint
+from .exceptions import GDBNotFoundException
 
 
 class GdbProcess(pygdbmi.gdbcontroller.GdbController):
@@ -34,6 +36,10 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             If <= 0, full timeout time is used.
             Defaults to pygdbmi.constants.DEFAULT_TIME_TO_CHECK_FOR_ADDITIONAL_OUTPUT_SEC
         """
+        if not os.path.exists(path_to_gdb):
+            raise GDBNotFoundException(f"GDB executable not found at {path_to_gdb}."
+                                        " Either specify the direct path to gdb,"
+                                        " or place it next to the script you are executing")
         super().__init__([path_to_gdb,"--interpreter=mi3"], time_to_check_for_additional_output_sec)
         self.ip_address = ip_address
         self.active_breakpoints = []
