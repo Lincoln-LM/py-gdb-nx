@@ -14,25 +14,25 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         ip_address: str,
         breakpoints: Optional[List[Breakpoint]] = None,
         path_to_gdb: Optional[str] = "aarch64-none-elf-gdb.exe",
-        time_to_check_for_additional_output_sec: float = 
+        time_to_check_for_additional_output_sec: float =
             pygdbmi.constants.DEFAULT_TIME_TO_CHECK_FOR_ADDITIONAL_OUTPUT_SEC,
     ):
         """
         Create new gdb process and connect to the switch
 
         Args:
-            ip_address (str): Local IP address of the nintendo switch console
+            ip_address (str): Local IP address of the Nintendo Switch console
 
             breakpoints (Optional[List[Breakpoint]], optional): List of breakpoints
-            to apply on start of process
+            to apply on start of process.
 
             path_to_gdb (Optional[str], optional): Path to gdb executable to run.
-            Defaults to "aarch64-none-elf-gdb.exe".
+            Defaults to "aarch64-none-elf-gdb.exe"
 
             time_to_check_for_additional_output_sec (float, optional): When parsing responses,
             wait this amout of time before exiting (exits before timeout is reached to save time).
             If <= 0, full timeout time is used.
-            Defaults to pygdbmi.constants.DEFAULT_TIME_TO_CHECK_FOR_ADDITIONAL_OUTPUT_SEC.
+            Defaults to pygdbmi.constants.DEFAULT_TIME_TO_CHECK_FOR_ADDITIONAL_OUTPUT_SEC
         """
         super().__init__([path_to_gdb,"--interpreter=mi3"], time_to_check_for_additional_output_sec)
         self.ip_address = ip_address
@@ -74,7 +74,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
 
         Args:
             process_name (str, optional): Name of switch process to attach to.
-            Defaults to "Application".
+            Defaults to "Application"
         """
         self.write("info os processes", read_response = False)
         processes = self.wait_for_response()
@@ -132,7 +132,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
 
         Args:
             response (List[dict]): mi3 response to log
-            detailed (bool, optional): Whether or not to log full response. Defaults to False.
+            detailed (bool, optional): Whether or not to log full response. Defaults to False
         """
         if detailed:
             print(response)
@@ -150,7 +150,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
 
         Args:
             response (List[dict]): mi3 response to filter
-            target_type (Optional[str], optional): mi3 type to filter for. Defaults to "console".
+            target_type (Optional[str], optional): mi3 type to filter for. Defaults to "console"
 
         Returns:
             List[dict]: Filtered mi3 response
