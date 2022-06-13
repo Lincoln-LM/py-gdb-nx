@@ -8,7 +8,7 @@ class Breakpoint:
     """Basic code breakpoint"""
     address: int
     name: str
-    on_break: Callable
+    on_break: Callable = None
     active: bool = True
     bkpt_no: int = None
 

@@ -1,7 +1,7 @@
 """Wrapper around pygdbmi.GdbController for easier switch connection"""
 
 import struct
-from typing import Optional,List
+from typing import Optional, List, Union
 import os.path
 import pygdbmi.gdbcontroller
 import pygdbmi.constants
@@ -228,6 +228,9 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             self.main_base. Defaults to False
             offset_heap (bool, optional): Whether or not to offset address by
             self.heap_base. Defaults to False
+
+        Returns:
+            float: Float read from address
         """
         return struct.unpack("f", self.read_bytes(address, "w", offset_main, offset_heap))
 
@@ -306,6 +309,65 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             by self.heap_base. Defaults to False
         """
         self.write_bytes(address, struct.pack("f", value), "w", offset_main, offset_heap)
+
+    def read_current_instruction(
+        self,
+    ) -> str:
+        """
+        Read current instruction from program counter
+
+        Returns:
+            str: Instruction information
+        """
+        return self.read_instruction(self.read_register("pc"))
+
+    def read_program_counter(
+        self,
+    ) -> str:
+        """
+        Read program counter relative to 0x7100000000
+
+        Returns:
+            int: Program counter relative to 0x7100000000
+        """
+        return 0x7100000000 | self.read_register("pc") - self.main_base
+
+    def read_register(
+        self,
+        register: str,
+    ) -> Union[int, float]:
+        """Read value of register as either an int or a float
+
+        Args:
+            register (str): Register to read from
+
+        Returns:
+            Union[int, float]: Value read from register
+        """
+        self.write(f"info register ${register}", read_response = False)
+        if register.startswith("s") or register.startswith("d"):
+            return float(self.filter_response(
+                self.get_gdb_response(),
+                "console"
+                )[0]['payload'].split("f = ")[-1].split(",")[0])
+        return int(self.filter_response(
+            self.get_gdb_response(),
+            "console"
+            )[0]['payload'].split(" ")[-1][:-2], 0)
+
+    def write_register(
+        self,
+        register: str,
+        value: Union[int, float],
+    ):
+        """Overwrite register with value
+
+        Args:
+            register (str): Register to write to
+            value (Union[int, float]): Value to write to register
+            type_string (str): C type string to use when writing to register
+        """
+        self.write(f"${register} = {value}")
 
     def add_breakpoint(
         self,
