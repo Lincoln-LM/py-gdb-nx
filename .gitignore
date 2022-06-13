@@ -134,5 +134,8 @@ dmypy.json
 # test scripts
 test_*.py
 
+# data
+data/
+
 # gdb
 aarch64-none-elf-gdb.exe
