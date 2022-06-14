@@ -412,10 +412,16 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
                 print(f"Breakpoint at \"{bkpt_hit.name}\" hit")
                 if isinstance(bkpt_hit, WatchPoint):
                     access_address: int = None
-                    for line in reversed(response):
-                        if "frame" in line['payload']:
-                            access_address = int(line['payload']['frame']['addr'],16)
-                            break
+                    while access_address is None:
+                        for line in reversed(response):
+                            if "frame" in line['payload']:
+                                access_address = int(line['payload']['frame']['addr'],16)
+                                break
+                        if access_address is None:
+                            response = self.get_gdb_response(
+                                timeout_sec = timeout,
+                                raise_error_on_timeout = False
+                            )
                     access_address = 0x7100000000 | (access_address - self.main_base)
                     print(f"Access address: {access_address:X}")
                 self.clear_responses()
