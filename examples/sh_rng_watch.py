@@ -10,7 +10,7 @@ from pygdbnx.breakpoint import Breakpoint, WatchPoint
 def on_rng_accessed(gdbprocess: GdbProcess, bkpt: Breakpoint):
     """Function to be called when the global rng state is accessed"""
     seed0 = gdbprocess.read_int(0x4C2AAC18, size = "g", offset_heap=True)
-    seed1 = gdbprocess.read_int(0x4C2AAC18, size = "g", offset_heap=True)
+    seed1 = gdbprocess.read_int(0x4C2AAC18 + 8, size = "g", offset_heap=True)
     print(f"{seed0=:X} {seed1=:X}")
 
 # IP of switch
