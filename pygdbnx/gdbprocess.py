@@ -6,7 +6,7 @@ import os.path
 import pygdbmi.gdbcontroller
 import pygdbmi.constants
 
-from .breakpoint import Breakpoint, WatchPoint
+from .breakpoint import Breakpoint, Watchpoint
 from .exceptions import GDBNotFoundException
 
 
@@ -381,7 +381,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         """
         bkpt.bkpt_no = self.bkpt_no
         self.active_breakpoints.append(bkpt)
-        if isinstance(bkpt, WatchPoint):
+        if isinstance(bkpt, Watchpoint):
             self.write(f"{bkpt.watch_type} * 0x{bkpt.address:X}")
         else:
             self.write(f"b * 0x{self.main_base + (bkpt.address & 0xFFFFFFFF):X}")
@@ -410,7 +410,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
                     break
             if bkpt_hit is not None:
                 print(f"Breakpoint at \"{bkpt_hit.name}\" hit")
-                if isinstance(bkpt_hit, WatchPoint):
+                if isinstance(bkpt_hit, Watchpoint):
                     access_address: int = None
                     while access_address is None:
                         for line in reversed(response):

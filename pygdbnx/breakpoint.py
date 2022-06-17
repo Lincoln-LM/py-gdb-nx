@@ -13,6 +13,6 @@ class Breakpoint:
     bkpt_no: int = None
 
 @dataclass
-class WatchPoint(Breakpoint):
+class Watchpoint(Breakpoint):
     """Memory watchpoint"""
     watch_type: str = "awatch"

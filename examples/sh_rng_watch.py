@@ -5,7 +5,7 @@ import sys
 sys.path.append("../")
 
 from pygdbnx.gdbprocess import GdbProcess
-from pygdbnx.breakpoint import Breakpoint, WatchPoint
+from pygdbnx.breakpoint import Breakpoint, Watchpoint
 
 def on_rng_accessed(gdbprocess: GdbProcess, bkpt: Breakpoint):
     """Function to be called when the global rng state is accessed"""
@@ -16,7 +16,7 @@ def on_rng_accessed(gdbprocess: GdbProcess, bkpt: Breakpoint):
 # IP of switch
 gdb_process = GdbProcess("192.168.0.18")
 # create memory watchpoint at heap + 0x4C2AAC18 (global rng state in SWSH)
-gdb_process.add_breakpoint(WatchPoint(
+gdb_process.add_breakpoint(Watchpoint(
     gdb_process.heap_base + 0x4C2AAC18,
     "RNG state accessed",
     on_break=on_rng_accessed
