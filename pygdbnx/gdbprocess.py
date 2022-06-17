@@ -345,7 +345,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             Union[int, float]: Value read from register
         """
         self.write(f"info register ${register}", read_response = False)
-        if register.startswith("s") or register.startswith("d"):
+        if register != "sp" and (register.startswith("s") or register.startswith("d")):
             return float(self.filter_response(
                 self.get_gdb_response(),
                 "console"
