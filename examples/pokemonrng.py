@@ -10,7 +10,9 @@ class Xorshift:
 
     # Constants
     SHIFT_8 = np.uint32(8)
+    SHIFT_16 = np.uint32(16)
     SHIFT_11 = np.uint32(11)
+    SHIFT_22 = np.uint32(22)
     SHIFT_19 = np.uint32(19)
     ALT_MIN = np.uint32(-0x80000000)
     ALT_MAX = np.uint32(0x7FFFFFFF)
@@ -66,11 +68,11 @@ class Xorshift:
         # Undo seed1 ^ (seed1 >> self.SHIFT_19)
         seed0 = self.state[2] >> self.SHIFT_19 ^ self.state[2] ^ self.state[3]
         # Undo seed0 ^= seed0 >> self.SHIFT_8
-        seed0 ^= seed0 >> 8
-        seed0 ^= seed0 >> 16
+        seed0 ^= seed0 >> self.SHIFT_8
+        seed0 ^= seed0 >> self.SHIFT_16
         # Undo seed0 ^= seed0 << self.SHIFT_11
-        seed0 ^= seed0 << 11
-        seed0 ^= seed0 << 22
+        seed0 ^= seed0 << self.SHIFT_11
+        seed0 ^= seed0 << self.SHIFT_22
 
         self.state = [seed0] + self.state[0:3]
 

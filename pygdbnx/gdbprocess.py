@@ -178,7 +178,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             address += self.heap_base
         self.write(f"x/1x{size} {address}", read_response = False)
         return int(self.filter_response(
-            self.get_gdb_response(),
+            self.wait_for_response(),
             "console"
             )[0]['payload'].split("0x")[-1][:-2].replace(":",""),16)
 
@@ -332,6 +332,17 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         """
         return 0x7100000000 | self.read_register("pc") - self.main_base
 
+    def read_return_address(
+        self,
+    ) -> str:
+        """
+        Read return address (x30) relative to 0x7100000000
+
+        Returns:
+            int: Return address (x30) relative to 0x7100000000
+        """
+        return 0x7100000000 | self.read_register("x30") - self.main_base
+
     def read_register(
         self,
         register: str,
@@ -367,7 +378,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             value (Union[int, float]): Value to write to register
             type_string (str): C type string to use when writing to register
         """
-        self.write(f"${register} = {value}")
+        self.write(f"set ${register} = {value}")
 
     def add_breakpoint(
         self,

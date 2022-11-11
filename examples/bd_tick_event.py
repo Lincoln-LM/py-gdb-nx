@@ -12,7 +12,7 @@ def on_tick_event(gdbprocess: GdbProcess, bkpt: Breakpoint):
     print("Tick event!")
 
 # IP of switch
-gdb_process = GdbProcess("192.168.0.18")
+gdb_process = GdbProcess("192.168.0.19")
 # create breakpoint at address 71002BC2C70 (SmartPoint.AssetAssistant.Sequencer$$Update in BD)
 gdb_process.add_breakpoint(Breakpoint(0x7102BC2C70, "TickEvent", on_break = on_tick_event))
 # connecting with gdb automatically pauses execution, resume in order to wait for breakpoints

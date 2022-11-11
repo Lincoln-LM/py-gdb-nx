@@ -14,7 +14,7 @@ def on_rng_accessed(gdbprocess: GdbProcess, bkpt: Breakpoint):
     print(f"{seed0=:X} {seed1=:X}")
 
 # IP of switch
-gdb_process = GdbProcess("192.168.0.18")
+gdb_process = GdbProcess("192.168.0.19")
 # create memory watchpoint at heap + 0x4C2AAC18 (global rng state in SWSH)
 gdb_process.add_breakpoint(Watchpoint(
     gdb_process.heap_base + 0x4C2AAC18,

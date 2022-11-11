@@ -33,7 +33,7 @@ def overworld_spawn_event(gdbprocess: GdbProcess, bkpt: Breakpoint):
         )
 
 # IP of switch
-gdb_process = GdbProcess("192.168.0.18")
+gdb_process = GdbProcess("192.168.0.19")
 # create breakpoint at address 7100D317BC
 # (near end of overworld pokemon generation function in Shield)
 gdb_process.add_breakpoint(Breakpoint(

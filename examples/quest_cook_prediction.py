@@ -95,7 +95,7 @@ def on_rng_accessed(gdbprocess: GdbProcess, bkpt: Breakpoint):
     input()
 
 # IP of switch
-gdb_process = GdbProcess("192.168.0.18")
+gdb_process = GdbProcess("192.168.0.19")
 # create breakpoint when rng is accessed
 gdb_process.add_breakpoint(Breakpoint(
     0x710101d960,
