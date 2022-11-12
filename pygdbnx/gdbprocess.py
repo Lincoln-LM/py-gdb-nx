@@ -232,7 +232,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         Returns:
             float: Float read from address
         """
-        return struct.unpack("f", self.read_bytes(address, "w", offset_main, offset_heap))
+        return struct.unpack("f", self.read_bytes(address, "w", offset_main, offset_heap))[0]
 
     def write_int(
         self,
@@ -288,7 +288,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
             offset_heap (bool, optional): Whether or not to offset address by
             self.heap_base. Defaults to False
         """
-        self.write_int(address, struct.unpack("I", value), size, offset_main, offset_heap)
+        self.write_int(address, struct.unpack("I", value)[0], size, offset_main, offset_heap)
 
     def write_float(
         self,
