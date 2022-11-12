@@ -370,15 +370,16 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self,
         register: str,
         value: Union[int, float],
+        type_string: str = "int",
     ):
         """Overwrite register with value
 
         Args:
             register (str): Register to write to
             value (Union[int, float]): Value to write to register
-            type_string (str): C type string to use when writing to register
+            type_string (str): C type string to use when writing to register. Defaults to "int"
         """
-        self.write(f"set ${register} = {value}")
+        self.write(f"set ${register} = ({type_string}){value}")
 
     def add_breakpoint(
         self,
