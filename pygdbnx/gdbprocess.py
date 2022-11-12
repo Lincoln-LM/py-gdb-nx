@@ -259,7 +259,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         elif size == "h":
             size = "unsigned short"
         elif size == "w":
-            size = "unsigned word"
+            size = "unsigned int"
         elif size == "g":
             size = "unsigned long"
         if offset_main:
