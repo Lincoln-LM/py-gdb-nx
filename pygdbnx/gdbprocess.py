@@ -7,7 +7,7 @@ import pygdbmi.gdbcontroller
 import pygdbmi.constants
 
 from .breakpoint import Breakpoint, Watchpoint
-from .exceptions import GDBNotFoundException
+from .exceptions import GDBNotFoundException, WaitApplicationException
 
 
 class GdbProcess(pygdbmi.gdbcontroller.GdbController):
@@ -16,6 +16,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self,
         ip_address: str,
         breakpoints: Optional[List[Breakpoint]] = None,
+        wait_for_application: bool = False,
         path_to_gdb: Optional[str] = "aarch64-none-elf-gdb.exe",
         time_to_check_for_additional_output_sec: float =
             pygdbmi.constants.DEFAULT_TIME_TO_CHECK_FOR_ADDITIONAL_OUTPUT_SEC,
@@ -28,6 +29,9 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
 
             breakpoints (Optional[List[Breakpoint]], optional): List of breakpoints
             to apply on start of process.
+
+            wait_for_application (bool): Whether or not to hook as soon as the game runs.
+            Defaults to False
 
             path_to_gdb (Optional[str], optional): Path to gdb executable to run.
             Defaults to "aarch64-none-elf-gdb.exe"
@@ -53,12 +57,32 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self.bkpt_no = 1
         self.clear_responses()
         self.connect()
+        if wait_for_application:
+            self.wait_for_application()
         self.attach()
         self.get_bases()
         self.write("set step-mode on")
         if breakpoints is not None:
             for item in breakpoints:
                 self.add_breakpoint(item)
+
+    def wait_for_application(
+        self,
+    ):
+        """
+        Hang until a game is run
+        """
+        response = self.filter_response(self.write("monitor wait application"), "log")
+        print("Waiting for application to launch...")
+        if len(response) > 1 and "not supported by this target" in response[1]['payload']:
+            raise WaitApplicationException("Failed to wait for application, " \
+                                           "please restart Nintendo Switch")
+        try:
+            input("Press Enter when the console is hanging: ")
+            self.clear_responses()
+        except pygdbmi.constants.GdbTimeoutError as timeout:
+            raise WaitApplicationException("Timed out while waiting for application, " \
+                                           "please restart Nintendo Switch") from timeout
 
     def clear_responses(
         self,
@@ -445,19 +469,21 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
     def wait_for_response(
         self,
         target_type: Optional[str] = "console",
+        timeout: float = 1.0,
     ) -> List[dict]:
         """
         Wait until response from gdb of type target_type
 
         Args:
             target_type (Optional[str], optional): mi3 type to wait for. Defaults to "console".
+            timeout (float): Amount of seconds to wait each time before timing out. Defaults to 1.0
 
         Returns:
             List[dict]: First mi3 response line of type target_type
         """
         found = False
         while not found:
-            response = self.get_gdb_response()
+            response = self.get_gdb_response(timeout_sec = timeout)
             for line in response:
                 if line['type'] == target_type:
                     found = True
