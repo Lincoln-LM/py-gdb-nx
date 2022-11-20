@@ -29,8 +29,8 @@ def overworld_spawn_event(gdbprocess: GdbProcess, bkpt: Breakpoint):
     stat_nature = Nature(gdbprocess.read_int(pokemon_addr + 0x24, "h"))
     ability = gdbprocess.read_int(pokemon_addr + 0x26, "b")
     shiny_rolls = gdbprocess.read_int(pokemon_addr + 0x27, "b")
-    ivs = [gdbprocess.read_int(pokemon_addr + 0x28 + i * 2, "h") for i in range(6)]
-    evs = [gdbprocess.read_int(pokemon_addr + 0x34 + i * 2, "h") for i in range(6)]
+    ivs = tuple(gdbprocess.read_int(pokemon_addr + 0x28 + i * 2, "h") for i in range(6))
+    evs = tuple(gdbprocess.read_int(pokemon_addr + 0x34 + i * 2, "h") for i in range(6))
     friendship = gdbprocess.read_int(pokemon_addr + 0x40, "w")
     guaranteed_ivs = gdbprocess.read_int(pokemon_addr + 0x44, "b")
     size1_type = gdbprocess.read_int(pokemon_addr + 0x45, "b")
