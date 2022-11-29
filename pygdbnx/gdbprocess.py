@@ -371,7 +371,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         self,
         register: str,
     ) -> Union[int, float]:
-        """Read value of register as either an int or a float
+        """
+        Read value of register as either an int or a float
 
         Args:
             register (str): Register to read from
@@ -388,7 +389,7 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         return int(self.filter_response(
             self.get_gdb_response(),
             "console"
-            )[0]['payload'].split(" ")[-1][:-2], 0)
+            )[0]['payload'].split(" ")[-1].replace("\n", "").replace("\\n",""), 0)
 
     def write_register(
         self,
@@ -396,7 +397,8 @@ class GdbProcess(pygdbmi.gdbcontroller.GdbController):
         value: Union[int, float],
         type_string: str = "int",
     ):
-        """Overwrite register with value
+        """
+        Overwrite register with value
 
         Args:
             register (str): Register to write to
